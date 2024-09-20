@@ -1,0 +1,15 @@
+name = "my-proxy-worker"
+main = "src/index.ts"
+workers_dev = true
+account_id= "0a6bbfa381fbbaa6a353e55fe85f2e5b"
+compatibility_date = "2024-09-19"
+
+
+[env.staging]
+name = "worker-china-proxy-staging"
+type = "webpack"
+zone_id = ""
+account_id = ""
+route = ""
+workers_dev = false
+vars = { ENVIRONMENT = "staging" }
