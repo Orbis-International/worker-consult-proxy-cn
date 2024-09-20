@@ -1,35 +1,39 @@
-import { handleRequest } from '../src/index';
+import { describe, it, expect, beforeEach } from 'vitest'; // Import these functions
+import { URLModifier } from '../src/URLModifier';
 
-describe('Cybersight Worker', () => {
-  it('should rewrite URL from consult.cybersight.org to consult.cybersight.org.cn', async () => {
-    // Mock request to `consult.cybersight.org`
-    const request = new Request('https://consult.cybersight.org/path/to/resource', {
-      method: 'GET'
-    });
+describe('URL Modifier Tests', () => {
+  let urlModifier: URLModifier;
 
-    // Invoke the worker's handleRequest function
-    const response = await handleRequest(request);
-
-    // Check if the response was fetched from the correct domain
-    expect(response).toBeTruthy();
-    expect(response instanceof Response).toBe(true);
-
-    // Simulate the rewritten URL
-    const url = new URL(response.url);
-    expect(url.hostname).toBe('consult.cybersight.org.cn');
+  beforeEach(() => {
+    urlModifier = new URLModifier('consult.cybersight.org.cn', 'consult.cybersight.org');
   });
 
-  it('should not rewrite URL if already on the .cn domain', async () => {
-    // Mock request to the .cn domain
-    const request = new Request('https://consult.cybersight.org.cn/path/to/resource', {
-      method: 'GET'
-    });
+  it('should rewrite URLs in HTML content', () => {
+    const htmlInput = `
+      <a href="https://consult.cybersight.org/some-page">Link</a>
+      <img src="https://consult.cybersight.org/images/logo.png">
+      <form action="https://consult.cybersight.org/login">
+        <input type="submit" value="Submit">
+      </form>
+      <script src="https://consult.cybersight.org/js/app.js"></script>
+    `;
 
-    // Invoke the worker's handleRequest function
-    const response = await handleRequest(request);
+    const expectedOutput = `
+      <a href="https://consult.cybersight.org.cn/some-page">Link</a>
+      <img src="https://consult.cybersight.org.cn/images/logo.png">
+      <form action="https://consult.cybersight.org.cn/login">
+        <input type="submit" value="Submit">
+      </form>
+      <script src="https://consult.cybersight.org.cn/js/app.js"></script>
+    `;
 
-    // Ensure the domain is not altered
-    const url = new URL(response.url);
-    expect(url.hostname).toBe('consult.cybersight.org.cn');
+    const modifiedHTML = urlModifier.modifyURLsInHTML(htmlInput);
+    expect(modifiedHTML).toBe(expectedOutput);
+  });
+
+  it('should not modify non-related URLs', () => {
+    const htmlInput = '<a href="https://other-domain.com">External Link</a>';
+    const modifiedHTML = urlModifier.modifyURLsInHTML(htmlInput);
+    expect(modifiedHTML).toBe(htmlInput); // No change for external links
   });
 });

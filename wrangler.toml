@@ -1,15 +1,17 @@
-name = "my-proxy-worker"
+name = "worker-china-proxy-prod"
 main = "src/index.ts"
-workers_dev = true
-account_id= "0a6bbfa381fbbaa6a353e55fe85f2e5b"
 compatibility_date = "2024-09-19"
 
 
-[env.staging]
-name = "worker-china-proxy-staging"
-type = "webpack"
-zone_id = ""
-account_id = ""
-route = ""
+type = "javascript"
+account_id = "0a6bbfa381fbbaa6a353e55fe85f2e5b"
 workers_dev = false
-vars = { ENVIRONMENT = "staging" }
+
+# Define your routes here
+route = "https://consult.cybersight.org.cn/*"
+zone_id = "<your-zone-id>"
+
+# Environment for testing in development/staging
+[env.qa]
+name = "worker-china-proxy-qa"
+route = "https://qa74-consult.cybersight.org.cn/*"

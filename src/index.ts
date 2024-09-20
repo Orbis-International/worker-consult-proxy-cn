@@ -1,39 +1,45 @@
 import { URLModifier } from './URLModifier';
 
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request));
-});
+const urlModifier = new URLModifier('consult.cybersight.org.cn', 'consult.cybersight.org');
 
-export async function handleRequest(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+export default {
+  async fetch(request: Request): Promise<Response> {
+    // Clone the request to handle both forwarding and logging/monitoring
+    const modifiedRequest = new Request(request);
+    
+    try {
+      const response = await fetch(modifiedRequest);
+      
+      // If the content type is HTML, rewrite it using Cloudflare HTMLRewriter
+      if (response.headers.get('content-type')?.includes('text/html')) {
+        return new HTMLRewriter()
+          .on('a[href], link[href], img[src], script[src], form[action]', new URLRewriter(urlModifier))
+          .transform(response);
+      }
+      
+      // If it's not HTML, just pass through the response
+      return response;
+    } catch (error) {
+      return new Response('Proxy error occurred', { status: 500 });
+    }
+  },
+};
 
-  // Check if the request is already targeting the .cn domain to avoid recursion
-  if (url.hostname === 'consult.cybersight.org.cn') {
-    return fetch(request); // Forward request without recursion
+class URLRewriter {
+  private urlModifier: URLModifier;
+  
+  constructor(urlModifier: URLModifier) {
+    this.urlModifier = urlModifier;
   }
 
-  // Replace the original domain with the .cn domain
-  if (url.hostname === 'consult.cybersight.org') {
-    url.hostname = 'consult.cybersight.org.cn';
+  element(element: Element) {
+    const attrList = ['href', 'src', 'action'];
+    for (const attr of attrList) {
+      const attributeValue = element.getAttribute(attr);
+      if (attributeValue) {
+        const newValue = this.urlModifier.modifySingleURL(attributeValue);
+        element.setAttribute(attr, newValue);
+      }
+    }
   }
-
-  const modifiedRequest = new Request(url.toString(), {
-    method: request.method,
-    headers: request.headers,
-    body: request.body,
-    redirect: request.redirect
-  });
-
-  const response = await fetch(modifiedRequest);
-
-  // If it's HTML, rewrite the URLs in the response
-  if (response.headers.get('content-type')?.includes('text/html')) {
-    return new HTMLRewriter()
-      .on('a[href]', new URLModifier('consult.cybersight.org', 'consult.cybersight.org.cn'))
-      .on('link[href]', new URLModifier('consult.cybersight.org', 'consult.cybersight.org.cn'))
-      .on('script[src]', new URLModifier('consult.cybersight.org', 'consult.cybersight.org.cn'))
-      .transform(response);
-  }
-
-  return response;
 }
