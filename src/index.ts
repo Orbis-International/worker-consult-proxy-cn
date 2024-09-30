@@ -18,7 +18,7 @@ export default {
     const modifiedRequest = new Request(url, request);
 
     try {
-/      const response = await fetch(modifiedRequest);
+      const response = await fetch(modifiedRequest);
 
       // If the response is a redirect, rewrite the location header and return the new response
       if (response.headers.get('location')?.includes('consult.cybersight.org')) {
