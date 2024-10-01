@@ -1,17 +1,20 @@
-name = "worker-china-proxy-prod"
+name = "worker-china-consult-proxy-prod"
 main = "src/index.ts"
 compatibility_date = "2024-09-19"
 
-
-type = "javascript"
-account_id = "0a6bbfa381fbbaa6a353e55fe85f2e5b"
+account_id = "3e6a373891514e0d6c52b79395032f86"
 workers_dev = false
 
 # Define your routes here
 route = "https://consult.cybersight.org.cn/*"
-zone_id = "<your-zone-id>"
 
 # Environment for testing in development/staging
 [env.qa]
-name = "worker-china-proxy-qa"
+name = "worker-china-consult-proxy-qa"
 route = "https://qa74-consult.cybersight.org.cn/*"
+
+[env.local]
+route = "https://consult.cybersight.org.cn/*"
+
+[observability]
+enabled = true
