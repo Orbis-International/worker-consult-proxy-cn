@@ -48,6 +48,20 @@ export default {
       // If the content type is HTML, rewrite it using Cloudflare HTMLRewriter
       if (response.headers.get('content-type')?.includes('text/html')) {
 
+        const styleRewritter = new HTMLRewriter()
+          .on('style', {
+            text(text: Text) {
+              if (text.text.includes('onsult.cybersight.org/')) {
+                let modifiedText = text.text;
+                modifiedText = modifiedText.replace('consult.cybersight.org/', 'consult.cybersight.org.cn/');
+                text.replace(modifiedText);
+              }
+            }
+          });
+
+        const responseWithModifiedStyle = styleRewritter.transform(response);
+
+
         // Remove Google Analytics script based on start and end comment tags
         const analyticsRemover = new HTMLRewriter()
           .on('script',
@@ -66,14 +80,13 @@ export default {
                   }
                 }
               }
-
             }
           );
 
-        const responseWithoutAnalytics = analyticsRemover.transform(response);
+        const responseWithoutAnalytics = analyticsRemover.transform(responseWithModifiedStyle);
 
         return new HTMLRewriter()
-          .on('a[href], link[href], img[src], script[src], form[action], input[src]', new URLRewriter(urlModifier))
+          .on('a[href], link[href], img[src], script[src], form[action], input[src], style', new URLRewriter(urlModifier))
           .transform(responseWithoutAnalytics);
       }
 
