@@ -1,6 +1,8 @@
 import { URLModifier } from './URLModifier';
 
 const urlModifier = new URLModifier('consult.cybersight.org.cn', 'consult.cybersight.org');
+const startAnalyticsTag = '<!-- Google Tag Manager -->';
+const endAnalyticsTag = '<!-- End Google Tag Manager -->';
 
 export default {
   async fetch(request: Request): Promise<Response> {
@@ -16,6 +18,7 @@ export default {
     url.hostname = 'consult.cybersight.org';
 
     const modifiedRequest = new Request(url, request);
+
 
     try {
       const response = await fetch(modifiedRequest);
@@ -36,11 +39,42 @@ export default {
         return newResponse
       }
 
+      const analyticsContent = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+		new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+		j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+		'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+		})(window,document,'script','dataLayer','GTM-PSVL6ZM');`
+
       // If the content type is HTML, rewrite it using Cloudflare HTMLRewriter
       if (response.headers.get('content-type')?.includes('text/html')) {
+
+        // Remove Google Analytics script based on start and end comment tags
+        const analyticsRemover = new HTMLRewriter()
+          .on('script',
+            {
+              // We remove analytics code by matching part of the code (even if chunked it should work)
+              text(text: Text) {
+                if (analyticsContent.includes(text.text)) {
+                  text.remove();
+                } else {
+                  if (text.text.includes('consult.cybersight.org/')) {
+                    // console.log('Found text:', text.text);
+                    let modifiedText = text.text;
+                    modifiedText = modifiedText.replace('consult.cybersight.org/', 'consult.cybersight.org.cn/');
+                    text.replace(modifiedText);
+                    // console.log('Modified text:', modifiedText);
+                  }
+                }
+              }
+
+            }
+          );
+
+        const responseWithoutAnalytics = analyticsRemover.transform(response);
+
         return new HTMLRewriter()
-          .on('a[href], link[href], img[src], script[src], form[action]', new URLRewriter(urlModifier))
-          .transform(response);
+          .on('a[href], link[href], img[src], script[src], form[action], input[src]', new URLRewriter(urlModifier))
+          .transform(responseWithoutAnalytics);
       }
 
       // If it's not HTML, just pass through the response
@@ -50,6 +84,24 @@ export default {
     }
   },
 };
+
+// class elementHandler {
+//   element(element: Element) {
+//     this.buffer = '';
+//   }
+//   text(text: string) {
+//     this.buffer += text.text
+//     if (text.lastInTextNode) {
+//       // this is the last bit of text in the chunk. Search and replace text
+//       text.replace(this.buffer.replace(/cat/g, 'dog'), { html: true });
+//       this.buffer = '';
+//     } else {
+//       // This wasn't the last text chunk, and we don't know if this chunk will
+//       // participate in a match. We must remove it so the client doesn't see it
+//       text.remove();
+//     }
+//   }
+// }
 
 class URLRewriter {
   private urlModifier: URLModifier;
